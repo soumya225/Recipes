@@ -7,8 +7,10 @@ import org.springframework.web.bind.annotation.*;
 import recipes.services.RecipeService;
 import recipes.models.Recipe;
 
+import javax.validation.Valid;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api")
@@ -23,20 +25,30 @@ public class RecipeController {
 
     @GetMapping("/recipe/{id}")
     public ResponseEntity<Recipe> getRecipe(@PathVariable int id) {
-        Recipe recipeById = recipeService.getRecipes().get(id);
+        Optional<Recipe> optionalRecipe = recipeService.findRecipeById(id);
 
-        return recipeById == null ?
+        return optionalRecipe.isEmpty() ?
                 new ResponseEntity<>(HttpStatus.NOT_FOUND) :
-                new ResponseEntity<>(recipeById, HttpStatus.OK);
+                new ResponseEntity<>(optionalRecipe.get(), HttpStatus.OK);
     }
 
     @PostMapping("/recipe/new")
-    public ResponseEntity<Map<String, Integer>> postRecipe(@RequestBody Recipe recipe) {
+    public ResponseEntity<Map<String, Integer>> postRecipe(@Valid @RequestBody Recipe recipe) {
         recipeService.addRecipe(recipe);
 
         Map<String, Integer> map = new HashMap<>();
         map.put("id", recipe.getId());
 
         return new ResponseEntity<>(map,HttpStatus.OK);
+    }
+
+    @DeleteMapping("/recipe/{id}")
+    public ResponseEntity<String> deleteRecipe(@PathVariable int id) {
+        try {
+            recipeService.deleteRecipeById(id);
+            return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+        } catch (IllegalArgumentException e) {
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
     }
 }
