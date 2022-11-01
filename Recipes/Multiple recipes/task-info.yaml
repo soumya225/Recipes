@@ -193,6 +193,79 @@ files:
         }
     }
   learner_created: false
-feedback_link: https://hyperskill.org/projects/180/stages/918/implement#comment
-status: Unchecked
-record: -1
+- name: src/recipes/controllers/RecipeController.java
+  visible: true
+  text: |
+    package recipes.controllers;
+
+    import org.springframework.beans.factory.annotation.Autowired;
+    import org.springframework.web.bind.annotation.*;
+    import recipes.services.RecipeService;
+    import recipes.models.Recipe;
+
+    @RestController
+    @RequestMapping("/api")
+    public class RecipeController {
+
+        private final RecipeService recipeService;
+
+        @Autowired
+        public RecipeController(RecipeService recipeService) {
+            this.recipeService = recipeService;
+        }
+
+        @GetMapping("/recipe")
+        public Recipe getRecipe() {
+            return recipeService.getRecipe();
+        }
+
+        @PostMapping("/recipe")
+        public void postRecipe(@RequestBody Recipe recipe) {
+            recipeService.setRecipe(recipe);
+        }
+    }
+  learner_created: true
+- name: src/recipes/services/RecipeService.java
+  visible: true
+  text: |
+    package recipes.services;
+
+    import lombok.Data;
+    import org.springframework.stereotype.Service;
+    import recipes.models.Recipe;
+
+    @Service
+    @Data
+    public class RecipeService {
+
+        private Recipe recipe;
+
+    }
+  learner_created: true
+- name: src/recipes/models/Recipe.java
+  visible: true
+  text: |
+    package recipes.models;
+
+    import lombok.AllArgsConstructor;
+    import lombok.Data;
+    import lombok.NoArgsConstructor;
+
+    @Data
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public class Recipe {
+
+        private String name;
+        private String description;
+        private String ingredients;
+        private String directions;
+
+    }
+  learner_created: true
+feedback_link: https://hyperskill.org/learn/step/13089#comment
+status: Solved
+feedback:
+  message: Congratulations!
+  time: Mon, 31 Oct 2022 06:59:23 UTC
+record: 2
