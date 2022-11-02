@@ -8,7 +8,9 @@ import recipes.services.RecipeService;
 import recipes.models.Recipe;
 
 import javax.validation.Valid;
+import java.time.LocalDateTime;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -50,5 +52,32 @@ public class RecipeController {
         } catch (IllegalArgumentException e) {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
+    }
+
+    @PutMapping("/recipe/{id}")
+    public ResponseEntity<String> updateRecipe(@PathVariable int id, @Valid @RequestBody Recipe recipe) {
+        try {
+            recipeService.updateRecipe(id, recipe);
+            return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+        } catch (IllegalArgumentException e) {
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
+    }
+
+    @GetMapping("/recipe/search")
+    public ResponseEntity<List<Recipe>> searchRecipes(@RequestParam(required = false) String category, @RequestParam(required = false) String name) {
+        if((category == null && name == null) || (category != null && name != null)) {
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        }
+
+        List<Recipe> results;
+
+        if (category != null) {
+            results = recipeService.searchByCategory(category);
+        } else {
+            results = recipeService.searchByName(name);
+        }
+
+        return new ResponseEntity<>(results, HttpStatus.OK);
     }
 }

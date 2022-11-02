@@ -635,6 +635,164 @@ files:
         }
     }
   learner_created: false
+- name: src/recipes/controllers/RecipeController.java
+  visible: true
+  text: |
+    package recipes.controllers;
+
+    import org.springframework.beans.factory.annotation.Autowired;
+    import org.springframework.http.HttpStatus;
+    import org.springframework.http.ResponseEntity;
+    import org.springframework.web.bind.annotation.*;
+    import recipes.services.RecipeService;
+    import recipes.models.Recipe;
+
+    import javax.validation.Valid;
+    import java.util.HashMap;
+    import java.util.Map;
+    import java.util.Optional;
+
+    @RestController
+    @RequestMapping("/api")
+    public class RecipeController {
+
+        private final RecipeService recipeService;
+
+        @Autowired
+        public RecipeController(RecipeService recipeService) {
+            this.recipeService = recipeService;
+        }
+
+        @GetMapping("/recipe/{id}")
+        public ResponseEntity<Recipe> getRecipe(@PathVariable int id) {
+            Optional<Recipe> optionalRecipe = recipeService.findRecipeById(id);
+
+            return optionalRecipe.isEmpty() ?
+                    new ResponseEntity<>(HttpStatus.NOT_FOUND) :
+                    new ResponseEntity<>(optionalRecipe.get(), HttpStatus.OK);
+        }
+
+        @PostMapping("/recipe/new")
+        public ResponseEntity<Map<String, Integer>> postRecipe(@Valid @RequestBody Recipe recipe) {
+            recipeService.addRecipe(recipe);
+
+            Map<String, Integer> map = new HashMap<>();
+            map.put("id", recipe.getId());
+
+            return new ResponseEntity<>(map,HttpStatus.OK);
+        }
+
+        @DeleteMapping("/recipe/{id}")
+        public ResponseEntity<String> deleteRecipe(@PathVariable int id) {
+            try {
+                recipeService.deleteRecipeById(id);
+                return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+            } catch (IllegalArgumentException e) {
+                return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+            }
+        }
+    }
+  learner_created: true
+- name: src/recipes/services/RecipeService.java
+  visible: true
+  text: |
+    package recipes.services;
+
+
+    import javassist.NotFoundException;
+    import org.springframework.beans.factory.annotation.Autowired;
+    import org.springframework.stereotype.Service;
+    import recipes.models.Recipe;
+    import recipes.repositories.RecipeRepository;
+
+    import java.util.Optional;
+
+    @Service
+    public class RecipeService {
+
+        private final RecipeRepository recipeRepository;
+
+        @Autowired
+        public RecipeService(RecipeRepository recipeRepository) {
+            this.recipeRepository = recipeRepository;
+        }
+
+        public void addRecipe(Recipe recipe) {
+            recipeRepository.save(recipe);
+        }
+
+        public Optional<Recipe> findRecipeById(int id) {
+            return recipeRepository.findById(id);
+        }
+
+        public void deleteRecipeById(int id) throws IllegalArgumentException {
+            Optional<Recipe> optionalRecipe = findRecipeById(id);
+
+            if(optionalRecipe.isEmpty()) {
+                throw new IllegalArgumentException();
+            } else {
+                recipeRepository.deleteById(id);
+            }
+        }
+
+    }
+  learner_created: true
+- name: src/recipes/models/Recipe.java
+  visible: true
+  text: |
+    package recipes.models;
+
+    import com.fasterxml.jackson.annotation.JsonIgnore;
+    import lombok.AllArgsConstructor;
+    import lombok.Data;
+    import lombok.NoArgsConstructor;
+
+    import javax.persistence.*;
+    import javax.validation.constraints.NotBlank;
+    import javax.validation.constraints.NotEmpty;
+    import java.util.List;
+
+    @Data
+    @AllArgsConstructor
+    @NoArgsConstructor
+    @Entity
+    public class Recipe {
+
+        @JsonIgnore
+        @Id
+        @GeneratedValue
+        private int id;
+
+        @NotBlank
+        private String name;
+
+        @NotBlank
+        private String description;
+
+        @NotEmpty
+        @ElementCollection
+        private List<String> ingredients;
+
+        @NotEmpty
+        @ElementCollection
+        private List<String> directions;
+
+    }
+  learner_created: true
+- name: src/recipes/repositories/RecipeRepository.java
+  visible: true
+  text: |
+    package recipes.repositories;
+
+    import org.springframework.data.repository.CrudRepository;
+    import recipes.models.Recipe;
+
+    public interface RecipeRepository extends CrudRepository<Recipe, Integer> {
+    }
+  learner_created: true
 feedback_link: https://hyperskill.org/learn/step/13091#comment
-status: Unchecked
+status: Solved
+feedback:
+  message: Congratulations!
+  time: Wed, 02 Nov 2022 14:34:33 UTC
 record: -1
