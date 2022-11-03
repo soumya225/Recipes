@@ -814,6 +814,262 @@ files:
         }
     }
   learner_created: false
+- name: src/recipes/controllers/RecipeController.java
+  visible: true
+  text: |
+    package recipes.controllers;
+
+    import org.springframework.beans.factory.annotation.Autowired;
+    import org.springframework.http.HttpStatus;
+    import org.springframework.http.ResponseEntity;
+    import org.springframework.web.bind.annotation.*;
+    import recipes.services.RecipeService;
+    import recipes.models.Recipe;
+
+    import javax.validation.Valid;
+    import java.time.LocalDateTime;
+    import java.util.HashMap;
+    import java.util.List;
+    import java.util.Map;
+    import java.util.Optional;
+
+    @RestController
+    @RequestMapping("/api")
+    public class RecipeController {
+
+        private final RecipeService recipeService;
+
+        @Autowired
+        public RecipeController(RecipeService recipeService) {
+            this.recipeService = recipeService;
+        }
+
+        @GetMapping("/recipe/{id}")
+        public ResponseEntity<Recipe> getRecipe(@PathVariable int id) {
+            Optional<Recipe> optionalRecipe = recipeService.findRecipeById(id);
+
+            return optionalRecipe.isEmpty() ?
+                    new ResponseEntity<>(HttpStatus.NOT_FOUND) :
+                    new ResponseEntity<>(optionalRecipe.get(), HttpStatus.OK);
+        }
+
+        @PostMapping("/recipe/new")
+        public ResponseEntity<Map<String, Integer>> postRecipe(@Valid @RequestBody Recipe recipe) {
+            recipeService.addRecipe(recipe);
+
+            Map<String, Integer> map = new HashMap<>();
+            map.put("id", recipe.getId());
+
+            return new ResponseEntity<>(map,HttpStatus.OK);
+        }
+
+        @DeleteMapping("/recipe/{id}")
+        public ResponseEntity<String> deleteRecipe(@PathVariable int id) {
+            try {
+                recipeService.deleteRecipeById(id);
+                return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+            } catch (IllegalArgumentException e) {
+                return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+            }
+        }
+
+        @PutMapping("/recipe/{id}")
+        public ResponseEntity<String> updateRecipe(@PathVariable int id, @Valid @RequestBody Recipe recipe) {
+            try {
+                recipeService.updateRecipe(id, recipe);
+                return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+            } catch (IllegalArgumentException e) {
+                return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+            }
+        }
+
+        @GetMapping("/recipe/search")
+        public ResponseEntity<List<Recipe>> searchRecipes(@RequestParam(required = false) String category, @RequestParam(required = false) String name) {
+            if((category == null && name == null) || (category != null && name != null)) {
+                return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+            }
+
+            List<Recipe> results;
+
+            if (category != null) {
+                results = recipeService.searchByCategory(category);
+            } else {
+                results = recipeService.searchByName(name);
+            }
+
+            return new ResponseEntity<>(results, HttpStatus.OK);
+        }
+    }
+  learner_created: true
+- name: src/recipes/services/RecipeService.java
+  visible: true
+  text: |
+    package recipes.services;
+
+
+    import javassist.NotFoundException;
+    import org.springframework.beans.factory.annotation.Autowired;
+    import org.springframework.stereotype.Service;
+    import recipes.models.Recipe;
+    import recipes.repositories.RecipeRepository;
+
+    import java.time.LocalDateTime;
+    import java.util.Collections;
+    import java.util.List;
+    import java.util.Optional;
+
+    @Service
+    public class RecipeService {
+
+        private final RecipeRepository recipeRepository;
+
+        @Autowired
+        public RecipeService(RecipeRepository recipeRepository) {
+            this.recipeRepository = recipeRepository;
+        }
+
+        public void addRecipe(Recipe recipe) {
+            recipe.setDate(LocalDateTime.now());
+            recipeRepository.save(recipe);
+        }
+
+        public Optional<Recipe> findRecipeById(int id) {
+            return recipeRepository.findById(id);
+        }
+
+        public void deleteRecipeById(int id) throws IllegalArgumentException {
+            Optional<Recipe> optionalRecipe = findRecipeById(id);
+
+            if(optionalRecipe.isEmpty()) {
+                throw new IllegalArgumentException();
+            } else {
+                recipeRepository.deleteById(id);
+            }
+        }
+
+        public void updateRecipe(int id, Recipe recipe) throws IllegalArgumentException {
+            Optional<Recipe> optionalRecipe = findRecipeById(id);
+
+            if(optionalRecipe.isEmpty()) {
+                throw new IllegalArgumentException();
+            } else {
+                recipe.setId(id);
+                recipe.setDate(LocalDateTime.now());
+                recipeRepository.save(recipe);
+            }
+        }
+
+        public List<Recipe> searchByCategory(String category) {
+            List<Recipe> results = recipeRepository.findByCategoryIgnoreCase(category);
+            results.sort(Collections.reverseOrder());
+            return results;
+        }
+
+        public List<Recipe> searchByName(String name) {
+            List<Recipe> results = recipeRepository.findByNameContainingIgnoreCase(name);
+            results.sort(Collections.reverseOrder());
+            return results;
+        }
+
+    }
+  learner_created: true
+- name: src/recipes/models/Recipe.java
+  visible: true
+  text: |
+    package recipes.models;
+
+    import com.fasterxml.jackson.annotation.JsonIgnore;
+    import lombok.AllArgsConstructor;
+    import lombok.Data;
+    import lombok.NoArgsConstructor;
+
+    import javax.persistence.*;
+    import javax.validation.constraints.NotBlank;
+    import javax.validation.constraints.NotEmpty;
+    import java.time.LocalDateTime;
+    import java.util.List;
+
+    @Data
+    @AllArgsConstructor
+    @NoArgsConstructor
+    @Entity
+    public class Recipe implements Comparable<Recipe> {
+
+        @JsonIgnore
+        @Id
+        @GeneratedValue
+        private int id;
+
+        @NotBlank
+        private String name;
+
+        @NotBlank
+        private String description;
+
+        @NotEmpty
+        @ElementCollection
+        private List<String> ingredients;
+
+        @NotEmpty
+        @ElementCollection
+        private List<String> directions;
+
+        @NotBlank
+        private String category;
+
+        private LocalDateTime date;
+
+        @Override
+        public int compareTo(Recipe recipe) {
+            return this.date.compareTo(recipe.getDate());
+        }
+    }
+  learner_created: true
+- name: src/recipes/repositories/RecipeRepository.java
+  visible: true
+  text: |
+    package recipes.repositories;
+
+    import org.springframework.data.repository.CrudRepository;
+    import recipes.models.Recipe;
+
+    import java.util.List;
+
+    public interface RecipeRepository extends CrudRepository<Recipe, Integer> {
+
+        List<Recipe> findByCategoryIgnoreCase(String category);
+
+        List<Recipe> findByNameContainingIgnoreCase(String name);
+    }
+  learner_created: true
+- name: src/recipes/WebSecurityConfigurerImpl.java
+  visible: true
+  learner_created: true
+- name: src/recipes/repositories/UserRepository.java
+  visible: true
+  learner_created: true
+- name: src/recipes/UserDetailsImpl.java
+  visible: true
+  learner_created: true
+- name: src/recipes/services/UserDetailsServiceImpl.java
+  visible: true
+  learner_created: true
+- name: src/recipes/controllers/UserController.java
+  visible: true
+  learner_created: true
+- name: src/recipes/exceptions/UnauthorizedException.java
+  visible: true
+  learner_created: true
+- name: src/recipes/exceptions/NotFoundException.java
+  visible: true
+  learner_created: true
+- name: src/recipes/models/User.java
+  visible: true
+  learner_created: true
 feedback_link: https://hyperskill.org/learn/step/13092#comment
-status: Unchecked
+status: Solved
+feedback:
+  message: Well done! You've finished the project. Select a new project on <a href="https://hyperskill.org/projects">JetBrains
+    Academy</a> to continue learning.
+  time: Thu, 03 Nov 2022 07:12:53 UTC
 record: -1

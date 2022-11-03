@@ -1,9 +1,9 @@
 package recipes.services;
 
-
-import javassist.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import recipes.exceptions.NotFoundException;
+import recipes.exceptions.UnauthorizedException;
 import recipes.models.Recipe;
 import recipes.repositories.RecipeRepository;
 
@@ -22,7 +22,8 @@ public class RecipeService {
         this.recipeRepository = recipeRepository;
     }
 
-    public void addRecipe(Recipe recipe) {
+    public void addRecipe(Recipe recipe, String username) {
+        recipe.setUser(username);
         recipe.setDate(LocalDateTime.now());
         recipeRepository.save(recipe);
     }
@@ -31,23 +32,28 @@ public class RecipeService {
         return recipeRepository.findById(id);
     }
 
-    public void deleteRecipeById(int id) throws IllegalArgumentException {
+    public void deleteRecipeById(int id, String username) throws NotFoundException, UnauthorizedException {
         Optional<Recipe> optionalRecipe = findRecipeById(id);
 
         if(optionalRecipe.isEmpty()) {
-            throw new IllegalArgumentException();
+            throw new NotFoundException();
+        } else if (!username.equals(optionalRecipe.get().getUser())) {
+            throw new UnauthorizedException();
         } else {
             recipeRepository.deleteById(id);
         }
     }
 
-    public void updateRecipe(int id, Recipe recipe) throws IllegalArgumentException {
+    public void updateRecipe(int id, Recipe recipe, String username) throws NotFoundException, UnauthorizedException {
         Optional<Recipe> optionalRecipe = findRecipeById(id);
 
         if(optionalRecipe.isEmpty()) {
-            throw new IllegalArgumentException();
+            throw new NotFoundException();
+        } else if (!username.equals(optionalRecipe.get().getUser())) {
+            throw new UnauthorizedException();
         } else {
             recipe.setId(id);
+            recipe.setUser(username);
             recipe.setDate(LocalDateTime.now());
             recipeRepository.save(recipe);
         }

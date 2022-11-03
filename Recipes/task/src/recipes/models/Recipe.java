@@ -1,7 +1,6 @@
 package recipes.models;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -12,7 +11,6 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 @Data
-@AllArgsConstructor
 @NoArgsConstructor
 @Entity
 public class Recipe implements Comparable<Recipe> {
@@ -40,6 +38,9 @@ public class Recipe implements Comparable<Recipe> {
     private String category;
 
     private LocalDateTime date;
+
+    @JsonIgnore
+    private String user;
 
     @Override
     public int compareTo(Recipe recipe) {

@@ -3,19 +3,21 @@ package recipes.controllers;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import recipes.exceptions.NotFoundException;
+import recipes.exceptions.UnauthorizedException;
 import recipes.services.RecipeService;
 import recipes.models.Recipe;
 
 import javax.validation.Valid;
-import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
 @RestController
-@RequestMapping("/api")
+@RequestMapping("/api/recipe")
 public class RecipeController {
 
     private final RecipeService recipeService;
@@ -25,7 +27,7 @@ public class RecipeController {
         this.recipeService = recipeService;
     }
 
-    @GetMapping("/recipe/{id}")
+    @GetMapping("/{id}")
     public ResponseEntity<Recipe> getRecipe(@PathVariable int id) {
         Optional<Recipe> optionalRecipe = recipeService.findRecipeById(id);
 
@@ -34,9 +36,9 @@ public class RecipeController {
                 new ResponseEntity<>(optionalRecipe.get(), HttpStatus.OK);
     }
 
-    @PostMapping("/recipe/new")
-    public ResponseEntity<Map<String, Integer>> postRecipe(@Valid @RequestBody Recipe recipe) {
-        recipeService.addRecipe(recipe);
+    @PostMapping("/new")
+    public ResponseEntity<Map<String, Integer>> postRecipe(@Valid @RequestBody Recipe recipe, Authentication auth) {
+        recipeService.addRecipe(recipe, auth.getName());
 
         Map<String, Integer> map = new HashMap<>();
         map.put("id", recipe.getId());
@@ -44,27 +46,31 @@ public class RecipeController {
         return new ResponseEntity<>(map,HttpStatus.OK);
     }
 
-    @DeleteMapping("/recipe/{id}")
-    public ResponseEntity<String> deleteRecipe(@PathVariable int id) {
+    @DeleteMapping("/{id}")
+    public ResponseEntity<String> deleteRecipe(@PathVariable int id, Authentication auth) {
         try {
-            recipeService.deleteRecipeById(id);
+            recipeService.deleteRecipeById(id, auth.getName());
             return new ResponseEntity<>(HttpStatus.NO_CONTENT);
-        } catch (IllegalArgumentException e) {
+        } catch (NotFoundException e) {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        } catch (UnauthorizedException e) {
+            return new ResponseEntity<>(HttpStatus.FORBIDDEN);
         }
     }
 
-    @PutMapping("/recipe/{id}")
-    public ResponseEntity<String> updateRecipe(@PathVariable int id, @Valid @RequestBody Recipe recipe) {
+    @PutMapping("/{id}")
+    public ResponseEntity<String> updateRecipe(@PathVariable int id, @Valid @RequestBody Recipe recipe, Authentication auth) {
         try {
-            recipeService.updateRecipe(id, recipe);
+            recipeService.updateRecipe(id, recipe, auth.getName());
             return new ResponseEntity<>(HttpStatus.NO_CONTENT);
-        } catch (IllegalArgumentException e) {
+        } catch (NotFoundException e) {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        } catch (UnauthorizedException e) {
+            return new ResponseEntity<>(HttpStatus.FORBIDDEN);
         }
     }
 
-    @GetMapping("/recipe/search")
+    @GetMapping("/search")
     public ResponseEntity<List<Recipe>> searchRecipes(@RequestParam(required = false) String category, @RequestParam(required = false) String name) {
         if((category == null && name == null) || (category != null && name != null)) {
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
